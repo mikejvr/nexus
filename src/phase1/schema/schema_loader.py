@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import Dict, Any
 
-SCHEMA_PATH = Path(__file__).resolve().parent / "shard_schema_phase1.json"
+SCHEMA_PATH = Path(__file__).resolve().parent / "phase1_schema.json"
 
 
 def load_phase1_schema() -> Dict[str, Any]:
