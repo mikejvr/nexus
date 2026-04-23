@@ -1,116 +1,58 @@
-"""
-phase1_orchestrator.py (updated to use Phase‑1 deterministic logging)
-
-Phase‑1 deterministic extractor orchestrator.
-
-This module:
-- Performs extension‑based routing only
-- Calls Phase‑1 DNA extractors
-- Produces a canonical 4‑tuple: (success, technical, metadata, errors)
-- No hashing, no entropy, no timestamps, no provenance, no forensic
-- No CLIP, no PIL, no thumbnails, no relationships
-- No logging side effects beyond deterministic logs
-- No inference, no MIME detection, no heuristics
-"""
-
-from __future__ import annotations
+import argparse
 from pathlib import Path
-from typing import Tuple, Dict, Any, List
 
-from src.phase1.utils.logging import log_info, log_error, log_debug, regen_log
-
-# Routers (all Phase‑1 deterministic)
-from src.extractors.raster_router import route as route_raster
-from src.extractors.vector_router import route as route_vector
-from src.extractors.document_router import route as route_document
-from src.extractors.presentation_router import route as route_presentation
-from src.extractors.spatial_router import route as route_spatial
-from src.extractors.archive_router import route as route_archive
-from src.extractors.logic_router import route as route_logic
+from src.substrate.constants import ASSETS_ROOT, UMS_ROOT
+from src.substrate.file_io import list_files, write_text
+from src.substrate.logging import log_info, log_error
 
 
-# ---------------------------------------------------------------------------
-# Extension → spec_id map (Phase‑1: static, deterministic)
-# ---------------------------------------------------------------------------
-
-SPEC_MAP = {
-    "document": {".doc", ".docx", ".pdf", ".txt", ".rtf", ".xls", ".pub"},
-    "visual": {".tga", ".xcf"},
-    "raster": {
-        ".psd", ".ps",".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff",
-        ".gif", ".bmp", ".ico", ".psb", ".dds", ".dwg", ".exr"
-    },
-    "spatial": {
-        ".obj", ".3ds", ".stl", ".fbx", ".ply", ".glb", ".gltf",
-        ".mtl", ".max"
-    },
-    "vector": {".ai", ".cdr", ".svg", ".eps", ".fla"},
-    "logic": {
-        ".sql", ".js", ".php", ".py", ".json", ".xml", ".csv",
-        ".xlsx", ".css", ".html", ".htm",  ".swf", ".sld",
-        ".wmv", ".wma", ".flv", ".astro", ".ts"
-    },
-    "archive": {".zip", ".rar", ".7z", ".tar", ".gz"},
-    "presentation": {".pptx", ".ppt", ".ppj"},
-}
+def _cmd_healthcheck() -> int:
+    log_info("Phase‑1 healthcheck: OK (stub).")
+    return 0
 
 
-def get_spec_id(ext: str) -> str:
-    ext = ext.lower()
-    for spec, exts in SPEC_MAP.items():
-        if ext in exts:
-            return spec
-    return "logic"  # Phase‑1 fallback, deterministic
+def _cmd_regen(assets_root: str, ums_root: str) -> int:
+    log_info(f"Regenerating shards from '{assets_root}' into '{ums_root}' (stub).")
+    files = list_files(assets_root)
+    for f in files:
+        rel = Path(f).relative_to(assets_root)
+        out = Path(ums_root) / rel
+        write_text(str(out), f"UMS stub for {rel}\n")
+    log_info(f"Regenerated {len(files)} shard(s).")
+    return 0
 
 
-# ---------------------------------------------------------------------------
-# Master router (Phase‑1 deterministic)
-# ---------------------------------------------------------------------------
+def _cmd_e2e() -> int:
+    log_info("Running Phase‑1 E2E determinism test (stub).")
+    return 0
 
-def route(ext_dna: Dict[str, Any], file_path: str) -> Tuple[bool, Dict[str, Any], Dict[str, Any], List[str]]:
-    """
-    Phase‑1 master router.
-    Returns: (success, technical, metadata, errors)
-    Deterministic logs are emitted via the Phase‑1 logging substrate.
-    """
-    path = Path(file_path)
-    ext = path.suffix.lower()
-    spec_id = get_spec_id(ext)
 
-    # Probe log: high level dispatch info
-    log_info("ROUTER", "Master router dispatch", {"file": file_path, "extension": ext, "spec_id": spec_id})
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(prog="orchestrator_v0")
+    sub = parser.add_subparsers(dest="command", required=True)
 
-    try:
-        if spec_id == "raster":
-            regen_log("route dispatch", {"spec": "raster", "file": file_path})
-            return route_raster(ext_dna, file_path)
+    sub.add_parser("healthcheck", help="Run Phase‑1 healthcheck.")
 
-        if spec_id == "vector":
-            regen_log("route dispatch", {"spec": "vector", "file": file_path})
-            return route_vector(ext_dna, file_path)
+    regen_p = sub.add_parser("regen", help="Regenerate shards.")
+    regen_p.add_argument("--assets-root", default=ASSETS_ROOT)
+    regen_p.add_argument("--ums-root", default=UMS_ROOT)
 
-        if spec_id == "document":
-            regen_log("route dispatch", {"spec": "document", "file": file_path})
-            return route_document(ext_dna, file_path)
+    sub.add_parser("e2e", help="Run Phase‑1 E2E determinism test.")
 
-        if spec_id == "presentation":
-            regen_log("route dispatch", {"spec": "presentation", "file": file_path})
-            return route_presentation(ext_dna, file_path)
+    args = parser.parse_args(argv)
 
-        if spec_id == "spatial":
-            regen_log("route dispatch", {"spec": "spatial", "file": file_path})
-            return route_spatial(ext_dna, file_path)
+    if args.command == "healthcheck":
+        code = _cmd_healthcheck()
+    elif args.command == "regen":
+        code = _cmd_regen(args.assets_root, args.ums_root)
+    elif args.command == "e2e":
+        code = _cmd_e2e()
+    else:
+        log_error(f"Unknown command: {args.command}")
+        code = 1
 
-        if spec_id == "archive":
-            regen_log("route dispatch", {"spec": "archive", "file": file_path})
-            return route_archive(ext_dna, file_path)
+    raise SystemExit(code)
 
-        # Default deterministic fallback
-        regen_log("route dispatch", {"spec": "logic", "file": file_path})
-        return route_logic(ext_dna, file_path)
 
-    except Exception as exc:  # noqa: BLE001
-        # Deterministic error logging; do not include nondeterministic metadata.
-        log_error("ROUTER", "routing exception", {"file": file_path, "spec_id": spec_id, "error": str(exc)})
-        # Return a deterministic failure tuple: (False, empty technical, empty metadata, errors list)
-        return False, {}, {}, [f"routing exception: {str(exc)}"]
+if __name__ == "__main__":
+    main()
