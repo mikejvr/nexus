@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Phase-1 Lineage Schema",
+  "description": "Minimal append-only lineage entry format for deterministic Phase-1 substrate.",
+  "type": "object",
+
+  "properties": {
+    "entries": {
+      "type": "array",
+      "description": "Append-only list of lineage entries.",
+      "items": {
+        "type": "object",
+        "required": [
+          "run_id",
+          "extractor",
+          "asset_id",
+          "schema_version",
+          "extractor_version",
+          "normalized_hash",
+          "shard_path"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "description": "Deterministic identifier for this lineage write operation."
+          },
+          "extractor": {
+            "type": "string",
+            "description": "Extractor name that produced the shard."
+          },
+          "asset_id": {
+            "type": "string",
+            "description": "Logical asset identifier."
+          },
+          "schema_version": {
+            "type": "string",
+            "description": "Extractor schema version used during shard creation."
+          },
+          "extractor_version": {
+            "type": "string",
+            "description": "Version of the extractor logic."
+          },
+          "normalized_hash": {
+            "type": "string",
+            "description": "SHA-256 hash of the canonical payload."
+          },
+          "shard_path": {
+            "type": "string",
+            "description": "Relative path to the deterministic shard file."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+
+  "required": ["entries"],
+  "additionalProperties": false
+}
