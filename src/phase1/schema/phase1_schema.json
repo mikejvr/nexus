@@ -11,8 +11,6 @@
     "schema_version",
     "metadata",
     "payload",
-    "extractor",
-    "extractor_version"
   ],
 
   "properties": {
