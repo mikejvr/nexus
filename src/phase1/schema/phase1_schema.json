@@ -10,7 +10,9 @@
     "extractor_version",
     "schema_version",
     "metadata",
-    "payload"
+    "payload",
+    "extractor",
+    "extractor_version"
   ],
 
   "properties": {
