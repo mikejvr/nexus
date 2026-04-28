@@ -1,0 +1,235 @@
+---
+
+### `extractor_types.py` — shared types & helpers
+
+```python
+from __future__ import annotations
+from dataclasses import dataclass, asdict
+from pathlib import Path
+from typing import Dict
+import hashlib
+
+# -----------------------------
+# Canonical extractor output
+# -----------------------------
+@dataclass(frozen=True)
+class ExtractorOutput:
+    asset_id: str          # content hash (sha256)
+    source_path: str       # relative path
+    file_type: str         # canonical type (MIME or NEXUS type)
+    size_bytes: int        # file size in bytes
+    hash_sha256: str       # same as asset_id
+    extractor: str         # extractor name
+    extractor_version: str # semver
+
+    def to_dict(self) -> Dict[str, object]:
+        return asdict(self)
+
+
+# -----------------------------
+# Deterministic helpers
+# -----------------------------
+def compute_content_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def compute_size_bytes(path: Path) -> int:
+    # Uses file length only; no timestamps, no metadata beyond size.
+    return path.stat().st_size
+
+
+def to_relative_path(path: Path, root: Path) -> str:
+    # POSIX, relative, deterministic
+    return path.relative_to(root).as_posix()
+```
+
+---
+
+### `base_extractor.py` — abstract extractor contract
+
+```python
+from __future__ import annotations
+from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Final
+
+from .extractor_types import (
+    ExtractorOutput,
+    compute_content_sha256,
+    compute_size_bytes,
+    to_relative_path,
+)
+
+EXTRACTOR_VERSION: Final[str] = "1.0.0"  # bump only via constitutional change
+
+
+class BaseExtractor(ABC):
+    """
+    Pure, stateless, deterministic extractor.
+    """
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Canonical extractor name (e.g., 'binary', 'text')."""
+
+    @abstractmethod
+    def detect_file_type(self, path: Path) -> str:
+        """
+        Return canonical file_type:
+          - MIME type, or
+          - NEXUS canonical type (Appendix A)
+        Must be deterministic, no heuristics, no environment dependence.
+        """
+
+    def extract(self, path: Path, root: Path) -> ExtractorOutput:
+        """
+        Main entrypoint: given an absolute path and intake root,
+        return a fully-populated ExtractorOutput.
+        """
+        content_hash = compute_content_sha256(path)
+        size = compute_size_bytes(path)
+        rel_path = to_relative_path(path, root)
+        file_type = self.detect_file_type(path)
+
+        return ExtractorOutput(
+            asset_id=content_hash,
+            source_path=rel_path,
+            file_type=file_type,
+            size_bytes=size,
+            hash_sha256=content_hash,
+            extractor=self.name,
+            extractor_version=EXTRACTOR_VERSION,
+        )
+```
+
+---
+
+### `binary_extractor.py` — minimal “catch‑all” extractor
+
+```python
+from __future__ import annotations
+from pathlib import Path
+
+from .base_extractor import BaseExtractor
+
+
+class BinaryExtractor(BaseExtractor):
+    """
+    Fallback extractor for unknown/opaque files.
+    Structural only: size + content hash + type tag.
+    """
+
+    @property
+    def name(self) -> str:
+        return "binary"
+
+    def detect_file_type(self, path: Path) -> str:
+        # Deterministic, non-heuristic classification.
+        # For Phase-1, we keep this minimal and structural.
+        suffix = path.suffix.lower()
+
+        if suffix == ".bin":
+            return "application/octet-stream"
+        # Fallback NEXUS canonical type
+        return "nexus/binary"
+```
+
+---
+
+### `text_extractor.py` — deterministic text classifier
+
+```python
+from __future__ import annotations
+from pathlib import Path
+
+from .base_extractor import BaseExtractor
+
+
+class TextExtractor(BaseExtractor):
+    """
+    Text extractor: structural only.
+    Does NOT parse semantics, encoding heuristics, or content.
+    """
+
+    @property
+    def name(self) -> str:
+        return "text"
+
+    def detect_file_type(self, path: Path) -> str:
+        suffix = path.suffix.lower()
+
+        if suffix in {".txt", ".log"}:
+            return "text/plain"
+        if suffix in {".md"}:
+            return "text/markdown"
+        if suffix in {".csv"}:
+            return "text/csv"
+
+        # Fallback NEXUS canonical type for text-like files
+        return "nexus/text-structural"
+```
+
+---
+
+### `extractor_registry.py` — deterministic routing
+
+```python
+from __future__ import annotations
+from pathlib import Path
+from typing import Dict, Type
+
+from .base_extractor import BaseExtractor
+from .binary_extractor import BinaryExtractor
+from .text_extractor import TextExtractor
+
+# Deterministic registry; order does not affect behavior.
+_EXTRACTORS: Dict[str, BaseExtractor] = {
+    "text": TextExtractor(),
+    "binary": BinaryExtractor(),
+}
+
+
+def select_extractor(path: Path) -> BaseExtractor:
+    """
+    Deterministic extractor selection based on extension only.
+    No heuristics, no content sniffing.
+    """
+    suffix = path.suffix.lower()
+
+    if suffix in {".txt", ".log", ".md", ".csv"}:
+        return _EXTRACTORS["text"]
+
+    # Fallback
+    return _EXTRACTORS["binary"]
+```
+
+---
+
+### `run_extractor.py` — single‑file entrypoint
+
+```python
+from __future__ import annotations
+from pathlib import Path
+from typing import Dict
+
+from .extractor_registry import select_extractor
+
+
+def run_extractor_for_file(path: Path, root: Path) -> Dict[str, object]:
+    """
+    Pure, deterministic wrapper:
+      - selects extractor
+      - runs extraction
+      - returns schema-aligned dict
+    """
+    extractor = select_extractor(path)
+    output = extractor.extract(path, root)
+    return output.to_dict()
+```
+
+---
