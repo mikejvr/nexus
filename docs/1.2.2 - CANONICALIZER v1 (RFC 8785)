@@ -1,0 +1,180 @@
+---
+
+# **PHASE‑1 ENGINE 2 — CANONICALIZER v1 (RFC 8785)**  
+### *“The first constitutional drift‑prevention layer.”*
+
+Canonicalizer v1 is the **second engine** in the Phase‑1 deterministic substrate.  
+Its job is to take extractor output and convert it into **canonical JSON**, ensuring that every downstream hash, shard, manifest, and ledger entry is **byte‑stable across all environments**.
+
+This engine is the **mathematical stabilizer** of the entire system.
+
+---
+
+# **1. RESPONSIBILITIES**
+
+Canonicalizer v1 must:
+
+### **✔ Convert extractor output into canonical JSON using RFC 8785**
+This includes:
+
+- deterministic key ordering  
+- deterministic string escaping  
+- deterministic number formatting  
+- deterministic boolean/null formatting  
+
+### **✔ Remove nondeterministic fields**
+Canonicalizer must not:
+
+- add fields  
+- drop fields  
+- reorder lists  
+- infer types  
+- introduce formatting drift  
+
+It must only normalize structure.
+
+### **✔ Normalize numeric, boolean, and null formats**
+Examples:
+
+- `1.0` → `1`  
+- `0.0` → `0`  
+- `True` → `true`  
+- `False` → `false`  
+- `None` → `null`  
+
+### **✔ Produce byte‑stable output across machines**
+Canonical bytes must be identical across:
+
+- OS  
+- filesystem  
+- locale  
+- Python version  
+- hardware  
+- time  
+- environment  
+
+### **✔ Output both canonical_dict and canonical_bytes**
+Canonicalizer v1 must return:
+
+```
+canonical_dict  — Python structure after round‑trip
+canonical_bytes — RFC 8785 canonical JSON bytes
+```
+
+These two outputs are the **only** valid canonical forms.
+
+---
+
+# **2. OUTPUT CONTRACT**
+
+Canonicalizer v1 must return:
+
+```
+{
+  canonical_dict: <Python structure>,
+  canonical_bytes: <RFC 8785 JSON bytes>
+}
+```
+
+Where:
+
+- `canonical_bytes` is the **exact** byte sequence used for hashing  
+- `canonical_dict` is the **round‑tripped** structure after canonicalization  
+
+Both are required for Phase‑1.
+
+---
+
+# **3. GUARANTEES**
+
+Canonicalizer v1 guarantees:
+
+### **✔ Byte‑for‑byte identical output for identical input**
+No drift. No variation. No formatting differences.
+
+### **✔ Stable across OS**
+Linux, macOS, Windows — identical output.
+
+### **✔ Stable across locale**
+No locale‑dependent sorting or formatting.
+
+### **✔ Stable across Python versions**
+Canonicalizer must not rely on Python’s JSON behavior.
+
+### **✔ Stable across time**
+No timestamps, no environment influence.
+
+### **✔ Stable across environments**
+Containers, VMs, bare metal — identical output.
+
+### **✔ First constitutional drift‑prevention layer**
+If canonicalization drifts, the entire ledger collapses.
+
+Canonicalizer v1 is the **mathematical anchor** of Phase‑1.
+
+---
+
+# **4. WHAT THE CANONICALIZER MUST *NOT* DO**
+
+Canonicalizer v1 must **not**:
+
+- reorder lists  
+- infer missing fields  
+- drop fields  
+- add fields  
+- perform schema validation  
+- interpret content  
+- pretty‑print JSON  
+- include whitespace  
+- depend on locale  
+- depend on OS JSON libraries  
+- depend on Python’s `json` module  
+
+RFC 8785 is the **only** allowed canonicalization method.
+
+---
+
+# **5. ERROR HANDLING**
+
+Canonicalizer v1 must:
+
+- raise a deterministic `CanonicalizationError` on invalid input  
+- never produce partial output  
+- never swallow exceptions  
+- never produce nondeterministic error messages  
+
+If extractor output is invalid, canonicalizer must fail fast.
+
+---
+
+# **6. DOWNSTREAM DEPENDENCIES**
+
+Canonicalizer v1 feeds:
+
+- Shard Writer v1  
+- Shard Validator v1  
+- Manifest Generator v1  
+- Phase‑5 CAS Evaluator  
+- Phase‑7 Lineage Agent  
+- Phase‑8 Stability Engine  
+- Phase‑9 Omnistructure Engine  
+
+If canonicalization drifts, **every downstream hash breaks**.
+
+---
+
+# **7. COMPLETION CRITERIA**
+
+Canonicalizer v1 is complete when:
+
+- RFC 8785 canonicalization is correct  
+- canonical_bytes are stable across environments  
+- canonical_dict matches canonical_bytes  
+- numeric/boolean/null normalization is correct  
+- no nondeterministic fields exist  
+- dependency version is locked  
+- constitutional test vectors pass  
+
+This engine is the **drift‑prevention firewall** of NEXUS‑I.
+
+---
