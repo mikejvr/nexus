@@ -1,0 +1,258 @@
+---
+
+# **PHASE‑1 ENGINE 4 — SHARD VALIDATOR v1**  
+### *“The constitutional auditor that guarantees shard integrity, canonical correctness, and ledger immutability.”*
+
+Shard Validator v1 is the **fourth engine** in the Phase‑1 deterministic substrate.  
+Its job is to **verify every shard written by Shard Writer v1**, ensuring that:
+
+- the shard is structurally valid  
+- the shard is canonical  
+- the shard’s canonical_hash is correct  
+- the shard’s logical timestamp is valid  
+- the shard is immutable and append‑only  
+- the shard matches the Phase‑1 schema exactly  
+
+This engine is the **guardian of the genesis ledger**.
+
+---
+
+# **1. PURPOSE**
+
+Shard Validator v1 exists to:
+
+- validate shard structure against schema  
+- validate canonical JSON correctness  
+- validate canonical_hash integrity  
+- validate logical timestamp chain  
+- detect corruption, drift, or tampering  
+- ensure append‑only behavior  
+- produce deterministic validation logs  
+
+It is the **constitutional enforcement layer** of Phase‑1.
+
+---
+
+# **2. CONSTITUTIONAL REQUIREMENTS**
+
+Shard Validator v1 must be:
+
+### **✔ Deterministic**
+Validation results must be identical across machines.
+
+### **✔ Canonical**
+All parsing must use RFC 8785 canonical JSON.
+
+### **✔ Strict**
+No extra fields, no missing fields, no schema drift.
+
+### **✔ Immutable**
+Must detect and reject modified shards.
+
+### **✔ Hash‑Anchored**
+Must recompute canonical_hash and compare.
+
+### **✔ Timestamp‑Aware**
+Must verify `{seq, prev_hash}` correctness.
+
+### **✔ Pure**
+No nondeterministic behavior, no environment influence.
+
+### **✔ Total**
+Must validate every shard, even corrupted ones.
+
+---
+
+# **3. INPUT → OUTPUT CONTRACT**
+
+### **Input**
+A shard file at:
+
+```
+/shards/<extractor>/<canonical_hash>.json
+```
+
+### **Output**
+A deterministic validation result:
+
+```
+{
+  "valid": true/false,
+  "errors": [...],
+  "canonical_hash": "<sha256>",
+}
+```
+
+This output is consumed by:
+
+- Manifest Generator v1  
+- Phase‑5 CAS Evaluator  
+- Phase‑7 Lineage Agent  
+- Phase‑8 Stability Engine  
+
+---
+
+# **4. WHAT SHARD VALIDATOR v1 CHECKS**
+
+Shard Validator v1 performs **five constitutional checks**.
+
+---
+
+## **4.1 Schema Validation**
+Validates the shard against `phase1_shard.schema.json`.
+
+Checks:
+
+- required fields  
+- no additional properties  
+- correct types  
+- correct patterns  
+- correct extractor provenance  
+- correct logical_timestamp structure  
+
+If schema fails → shard is invalid.
+
+---
+
+## **4.2 Canonical JSON Validation**
+Shard files must be:
+
+- RFC 8785 canonical JSON  
+- UTF‑8 encoded  
+- no whitespace drift  
+- no formatting drift  
+
+Validator uses:
+
+```
+rfc8785.loads(raw_json)
+```
+
+If parsing fails → shard is invalid.
+
+---
+
+## **4.3 Canonical Hash Validation**
+Validator recomputes:
+
+```
+computed = sha256(canonical_bytes(payload))
+```
+
+Compares to:
+
+```
+shard["canonical_hash"]
+```
+
+If mismatch → shard is invalid.
+
+This detects:
+
+- tampering  
+- corruption  
+- nondeterministic canonicalization  
+- extractor drift  
+
+---
+
+## **4.4 Logical Timestamp Validation**
+Validator checks:
+
+- `seq` is monotonic  
+- `prev_hash` matches previous shard’s canonical_hash  
+- genesis rule is respected  
+
+Genesis rule:
+
+```
+seq = 0
+prev_hash = sha256("NEXUS_GENESIS")
+```
+
+If timestamp chain breaks → shard is invalid.
+
+---
+
+## **4.5 Path Validation**
+Validator ensures:
+
+```
+path canonical_hash == shard["canonical_hash"]
+```
+
+If the filename does not match the canonical_hash → invalid.
+
+This prevents:
+
+- path tampering  
+- hash collisions  
+- mis‑indexed shards  
+
+---
+
+# **5. WHAT SHARD VALIDATOR v1 MUST *NOT* DO**
+
+Validator must **not**:
+
+- modify shards  
+- rewrite shards  
+- canonicalize shards in place  
+- infer missing fields  
+- auto‑correct errors  
+- reorder lists  
+- perform semantic analysis  
+
+Validator is **strictly read‑only**.
+
+---
+
+# **6. ERROR HANDLING**
+
+Shard Validator v1 must:
+
+- never crash  
+- never produce nondeterministic error messages  
+- always return a structured result  
+- always include all errors  
+- treat corrupted shards as invalid, not fatal  
+
+If a shard is unreadable:
+
+```
+valid = false
+errors = ["invalid canonical JSON: ..."]
+```
+
+---
+
+# **7. DOWNSTREAM DEPENDENCIES**
+
+Shard Validator v1 feeds:
+
+- Manifest Generator v1  
+- Phase‑5 CAS Evaluator  
+- Phase‑7 Lineage Agent  
+- Phase‑8 Stability Engine  
+- Phase‑9 Omnistructure Engine  
+
+If Shard Validator v1 drifts, **the entire governance layer collapses**.
+
+---
+
+# **8. COMPLETION CRITERIA**
+
+Shard Validator v1 is complete when:
+
+- schema validation is correct  
+- canonical JSON parsing is correct  
+- canonical_hash validation is correct  
+- logical timestamp chain validation is correct  
+- path validation is correct  
+- corrupted shards are detected  
+- validation logs are deterministic  
+- no nondeterministic behavior exists  
+
+This engine is the **constitutional auditor** of Phase‑1.
+
+---
