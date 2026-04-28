@@ -1,0 +1,218 @@
+---
+
+# **PHASE‑1 ENGINE 5 — DETERMINISTIC IO LAYER v1**  
+### *“The filesystem‑stabilizer that eliminates OS drift, locale drift, and traversal nondeterminism.”*
+
+Deterministic IO Layer v1 is the **fifth engine** in the Phase‑1 deterministic substrate.  
+Its job is to ensure that **every filesystem interaction** in Phase‑1 is:
+
+- deterministic  
+- reproducible  
+- canonical  
+- OS‑agnostic  
+- locale‑independent  
+- byte‑stable  
+
+This engine is the **constitutional shield** that prevents nondeterminism from leaking into the substrate.
+
+---
+
+# **1. PURPOSE**
+
+Deterministic IO Layer v1 exists to:
+
+- enforce deterministic directory traversal  
+- enforce deterministic file ordering  
+- normalize Unicode paths  
+- normalize path separators  
+- ensure atomic writes  
+- prevent OS‑dependent behavior  
+- guarantee reproducible builds  
+- provide a stable foundation for shard writing and manifest generation  
+
+It is the **I/O contract** of the NEXUS‑I substrate.
+
+---
+
+# **2. CONSTITUTIONAL REQUIREMENTS**
+
+Deterministic IO Layer v1 must be:
+
+### **✔ Deterministic**
+Same directory → same traversal order, always.
+
+### **✔ Unicode‑Stable**
+Normalize all paths to NFC.
+
+### **✔ OS‑Agnostic**
+No dependence on:
+
+- Windows vs Linux vs macOS  
+- NTFS vs ext4 vs APFS  
+- locale settings  
+- filesystem ordering  
+
+### **✔ Pure**
+No timestamps, no metadata, no nondeterministic attributes.
+
+### **✔ Atomic**
+All writes must be atomic and crash‑safe.
+
+### **✔ Canonical**
+Paths must be normalized to POSIX form.
+
+### **✔ Total**
+Must handle all files, including corrupted or unreadable ones.
+
+---
+
+# **3. INPUT → OUTPUT CONTRACT**
+
+### **Input**
+A root directory path.
+
+### **Output**
+A deterministic sequence of `Path` objects, sorted lexicographically by:
+
+1. POSIX path  
+2. Unicode NFC normalization  
+3. UTF‑8 bytewise ordering  
+
+This ordering is **constitutionally mandated**.
+
+---
+
+# **4. WHAT THE DETERMINISTIC IO LAYER DOES**
+
+## **4.1 Deterministic Directory Traversal**
+The engine provides:
+
+```
+walk_sorted(root)
+```
+
+Which guarantees:
+
+- stable ordering  
+- stable Unicode normalization  
+- stable path representation  
+- stable traversal across OSes  
+
+This is used by:
+
+- Shard Writer v1  
+- Shard Validator v1  
+- Manifest Generator v1  
+
+## **4.2 Path Normalization**
+All paths must be normalized to:
+
+- POSIX separators (`/`)  
+- Unicode NFC  
+- UTF‑8 bytes for sorting  
+
+This eliminates:
+
+- Windows `\`  
+- macOS NFD normalization  
+- locale‑dependent collation  
+
+## **4.3 Atomic Writes**
+All writes must follow the constitutional atomic write protocol:
+
+1. Write to a temporary file  
+2. `fsync` the file  
+3. `fsync` the directory  
+4. Atomic rename into place  
+
+This prevents:
+
+- partial writes  
+- corruption  
+- nondeterministic race conditions  
+
+## **4.4 No OS Metadata**
+The IO layer must **never** read:
+
+- creation time  
+- modification time  
+- access time  
+- inode numbers  
+- permissions  
+- owner/group  
+- extended attributes  
+
+These are nondeterministic and unconstitutional.
+
+## **4.5 No Hidden Filesystem Behavior**
+The IO layer must not rely on:
+
+- filesystem ordering  
+- directory iteration order  
+- case sensitivity  
+- symlink resolution order  
+
+Everything must be explicitly sorted and normalized.
+
+---
+
+# **5. WHAT THE IO LAYER MUST *NOT* DO**
+
+Deterministic IO Layer v1 must **not**:
+
+- use `os.walk()` ordering  
+- use raw `Path.rglob()` ordering  
+- rely on OS locale  
+- rely on filesystem metadata  
+- use nondeterministic temp file names  
+- use wall‑clock timestamps  
+- use random UUIDs  
+- use platform‑specific behavior  
+
+Any of these would break determinism.
+
+---
+
+# **6. ERROR HANDLING**
+
+The IO layer must:
+
+- never crash on unreadable files  
+- never skip files silently  
+- never produce nondeterministic error messages  
+- always return deterministic traversal order  
+
+If a file cannot be read, the IO layer must still include it in traversal.
+
+---
+
+# **7. DOWNSTREAM DEPENDENCIES**
+
+Deterministic IO Layer v1 feeds:
+
+- Shard Writer v1  
+- Shard Validator v1  
+- Manifest Generator v1  
+- Phase‑5 CAS Evaluator  
+- Phase‑7 Lineage Agent  
+- Phase‑8 Stability Engine  
+- Phase‑9 Omnistructure Engine  
+
+If the IO layer drifts, **the entire ledger becomes nondeterministic**.
+
+---
+
+# **8. COMPLETION CRITERIA**
+
+Deterministic IO Layer v1 is complete when:
+
+- traversal order is stable across OSes  
+- Unicode normalization is correct  
+- atomic writes are guaranteed  
+- no nondeterministic metadata is used  
+- path normalization is correct  
+- all downstream engines receive deterministic input  
+
+This engine is the **filesystem stabilizer** of NEXUS‑I.
+
+---
