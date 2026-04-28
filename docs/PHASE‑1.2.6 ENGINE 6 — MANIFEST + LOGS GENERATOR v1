@@ -1,0 +1,291 @@
+---
+
+# **PHASE‑1 ENGINE 6 — MANIFEST + LOGS GENERATOR v1**  
+### *“The genesis‑ledger constructor that produces the audit‑ready, hash‑anchored, deterministic Phase‑1 state.”*
+
+Manifest + Logs Generator v1 is the **sixth and final engine** in the Phase‑1 deterministic substrate.  
+Its job is to take all validated shards and produce:
+
+- a deterministic validation log  
+- a deterministic hash log  
+- a deterministic Phase‑1 manifest  
+- a self‑verifying manifest hash  
+- a Merkle root over all shards  
+- a deterministic logical timestamp for the manifest  
+
+This engine transforms Phase‑1 from a set of files into a **constitutional ledger**.
+
+---
+
+# **1. PURPOSE**
+
+Manifest + Logs Generator v1 exists to:
+
+- collect all shards deterministically  
+- validate each shard  
+- compute canonical hashes  
+- compute a Merkle root  
+- build the Phase‑1 manifest  
+- attach a manifest‑level logical timestamp  
+- produce audit logs  
+- produce a self‑verifying manifest hash  
+
+It is the **ledger‑finalization engine**.
+
+---
+
+# **2. CONSTITUTIONAL REQUIREMENTS**
+
+Manifest Generator v1 must be:
+
+### **✔ Deterministic**
+Same shards → same manifest, byte‑for‑byte.
+
+### **✔ Canonical**
+All outputs must be RFC 8785 canonical JSON.
+
+### **✔ Sorted**
+Shards must be listed in lexicographic order by path.
+
+### **✔ Hash‑Anchored**
+Manifest must include:
+- canonical_hash for each shard  
+- Merkle root over all shards  
+- manifest_hash (self‑hash)  
+
+### **✔ Timestamped**
+Manifest must include a deterministic logical timestamp.
+
+### **✔ Immutable**
+Manifest must never overwrite or mutate shards.
+
+### **✔ Pure**
+No nondeterministic metadata (timestamps, OS info, etc.).
+
+### **✔ Total**
+Must include all shards, even corrupted ones (marked invalid).
+
+---
+
+# **3. INPUT → OUTPUT CONTRACT**
+
+### **Input**
+A directory containing:
+
+```
+/shards/<extractor>/<canonical_hash>.json
+```
+
+### **Output**
+Three canonical files:
+
+```
+/logs/phase1_validation.json
+/logs/phase1_hashes.json
+/phase1_manifest.json
+```
+
+All are RFC 8785 canonical JSON.
+
+---
+
+# **4. OUTPUT ARTIFACTS**
+
+## **4.1 phase1_validation.json**
+A list of validation results:
+
+```
+[
+  {
+    "path": "shards/text/abc123.json",
+    "valid": true,
+    "errors": [],
+    "canonical_hash": "abc123..."
+  },
+  ...
+]
+```
+
+This is the **audit log**.
+
+---
+
+## **4.2 phase1_hashes.json**
+A mapping of shard paths → canonical_hash:
+
+```
+{
+  "shards/text/abc123.json": "abc123...",
+  "shards/pdf/def456.json": "def456..."
+}
+```
+
+This is the **hash index**.
+
+---
+
+## **4.3 phase1_manifest.json**
+The constitutional ledger anchor:
+
+```
+{
+  "phase": 1,
+  "version": "1.0",
+  "logical_timestamp": {
+    "seq": <int>,
+    "prev_hash": "<sha256>"
+  },
+  "shards": [
+    {
+      "path": "shards/text/abc123.json",
+      "canonical_hash": "abc123...",
+      "extractor": "text",
+      "extractor_version": "1.0.0"
+    },
+    ...
+  ],
+  "root_hash": "<merkle_root>",
+  "shard_count": <int>,
+  "manifest_hash": "<sha256>"
+}
+```
+
+This is the **genesis ledger**.
+
+---
+
+# **5. WHAT THE MANIFEST GENERATOR DOES**
+
+## **5.1 Deterministic Traversal**
+Uses Deterministic IO Layer v1:
+
+- Unicode‑normalized  
+- POSIX‑normalized  
+- UTF‑8 bytewise sorted  
+
+This ensures stable ordering across OSes.
+
+---
+
+## **5.2 Shard Validation**
+For each shard:
+
+- schema validation  
+- canonical JSON validation  
+- canonical_hash validation  
+- logical timestamp validation  
+- path validation  
+
+Invalid shards are logged but not excluded.
+
+---
+
+## **5.3 Merkle Root Construction**
+Merkle tree is built:
+
+- in manifest order  
+- with domain separation  
+- using SHA‑256  
+
+This produces:
+
+```
+root_hash
+```
+
+This is the **integrity anchor** for all shards.
+
+---
+
+## **5.4 Manifest Logical Timestamp**
+Manifest receives its own timestamp:
+
+```
+logical_timestamp = {
+  "seq": shard_count,
+  "prev_hash": root_hash
+}
+```
+
+This ties the manifest into the same hash‑chain model as shards.
+
+---
+
+## **5.5 Self‑Verifying Manifest Hash**
+Manifest is hashed **without** the `manifest_hash` field:
+
+```
+manifest_hash = sha256(canonical_bytes(manifest_without_hash))
+```
+
+Then inserted back into the manifest.
+
+This makes the manifest **self‑authenticating**.
+
+---
+
+# **6. WHAT THE MANIFEST GENERATOR MUST *NOT* DO**
+
+Manifest Generator v1 must **not**:
+
+- reorder shards nondeterministically  
+- skip shards silently  
+- modify shard contents  
+- rewrite shards  
+- include nondeterministic metadata  
+- include wall‑clock timestamps  
+- include OS metadata  
+- include environment‑dependent values  
+
+Any violation breaks the ledger.
+
+---
+
+# **7. ERROR HANDLING**
+
+Manifest Generator v1 must:
+
+- never crash on corrupted shards  
+- always include corrupted shards in validation log  
+- never produce nondeterministic error messages  
+- always produce canonical JSON  
+
+If a shard is unreadable:
+
+```
+valid = false
+errors = ["parse_exception: ..."]
+canonical_hash = null
+```
+
+---
+
+# **8. DOWNSTREAM DEPENDENCIES**
+
+Manifest Generator v1 feeds:
+
+- Phase‑5 CAS Evaluator  
+- Phase‑7 Lineage Agent  
+- Phase‑8 Stability Engine  
+- Phase‑9 Omnistructure Engine  
+
+If the manifest drifts, **the entire governance layer collapses**.
+
+---
+
+# **9. COMPLETION CRITERIA**
+
+Manifest Generator v1 is complete when:
+
+- all shards are included  
+- validation log is deterministic  
+- hash log is deterministic  
+- manifest is deterministic  
+- Merkle root is correct  
+- manifest_hash is correct  
+- logical timestamp is correct  
+- no nondeterministic fields exist  
+
+This engine is the **ledger‑finalization layer** of NEXUS‑I.
+
+---
