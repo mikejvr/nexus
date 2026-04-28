@@ -1,0 +1,234 @@
+---
+
+# **PHASE‑1 ENGINE 3 — SHARD WRITER v1**  
+### *“The append‑only, canonical, deterministic ledger‑writer of the substrate.”*
+
+Shard Writer v1 is the **third engine** in the Phase‑1 deterministic substrate.  
+It takes canonicalized extractor output and writes it into a **Phase‑1 shard**, which becomes a permanent, immutable entry in the genesis ledger.
+
+Shard Writer v1 is where raw structural truth becomes **constitutional record**.
+
+---
+
+# **1. PURPOSE**
+
+Shard Writer v1 exists to:
+
+- wrap canonical extractor output in a shard envelope  
+- attach deterministic metadata  
+- compute and embed the canonical hash  
+- assign a deterministic logical timestamp  
+- write the shard to a deterministic path  
+- ensure append‑only, immutable storage  
+
+It is the **first point** where NEXUS‑I creates durable, constitutional state.
+
+---
+
+# **2. CONSTITUTIONAL REQUIREMENTS**
+
+Shard Writer v1 must be:
+
+### **✔ Deterministic**
+Same payload → same shard file, same bytes, same path.
+
+### **✔ Canonical**
+All JSON must be RFC 8785 canonical.
+
+### **✔ Append‑Only**
+Never overwrite, mutate, or delete shards.
+
+### **✔ Immutable**
+Once written, a shard is final.
+
+### **✔ Pure**
+No nondeterministic metadata (timestamps, UUIDs, OS info).
+
+### **✔ Schema‑Stable**
+Must produce output matching `phase1_shard.schema.json`.
+
+### **✔ Provenance‑Preserving**
+Must include extractor name + version.
+
+### **✔ Hash‑Anchored**
+Must compute and embed `canonical_hash`.
+
+### **✔ Logically Timestamped**
+Must assign a deterministic `{seq, prev_hash}` timestamp.
+
+---
+
+# **3. INPUT → OUTPUT CONTRACT**
+
+### **Input**
+A canonical Python dict produced by Canonicalizer v1:
+
+```
+canonical_payload = {
+  "asset_id": "...",
+  "source_path": "...",
+  "file_type": "...",
+  "size_bytes": ...,
+  "content_sha256": "...",
+  "extractor": "...",
+  "extractor_version": "...",
+  "schema_version": "1.0"
+}
+```
+
+### **Output**
+A Phase‑1 shard:
+
+```
+{
+  "phase": 1,
+  "version": "1.0",
+  "asset_id": "<mirrored from payload>",
+  "canonical_hash": "<sha256(canonical_payload)>",
+  "extractor": "<name>",
+  "extractor_version": "<semver>",
+  "logical_timestamp": {
+      "seq": <int>,
+      "prev_hash": "<sha256>"
+  },
+  "payload": { ...canonical extractor output... }
+}
+```
+
+### **File Path**
+```
+/shards/<extractor>/<canonical_hash>.json
+```
+
+This path is deterministic and collision‑resistant.
+
+---
+
+# **4. WHAT SHARD WRITER v1 DOES**
+
+### **4.1 Computes canonical_hash**
+```
+canonical_hash = sha256(canonical_bytes)
+```
+
+This is the shard’s identity.
+
+### **4.2 Mirrors asset_id**
+The shard envelope includes:
+
+```
+asset_id = payload.asset_id
+```
+
+This enables fast indexing without parsing payloads.
+
+### **4.3 Assigns deterministic logical timestamp**
+```
+logical_timestamp = {
+  "seq": <monotonic integer>,
+  "prev_hash": <hash of previous shard or GENESIS_HASH>
+}
+```
+
+This forms a **hash‑chain** across all shards.
+
+### **4.4 Writes canonical JSON**
+All shard files are written using:
+
+- RFC 8785 canonical JSON  
+- UTF‑8  
+- atomic write  
+
+### **4.5 Ensures append‑only behavior**
+If a shard file already exists:
+
+- Writer must NOT overwrite  
+- Writer must NOT modify  
+- Writer must NOT delete  
+
+Shard Writer v1 is constitutionally forbidden from mutation.
+
+---
+
+# **5. WHAT SHARD WRITER v1 MUST *NOT* DO**
+
+Shard Writer v1 may **not**:
+
+- include wall‑clock timestamps  
+- include nondeterministic metadata  
+- reorder payload keys  
+- modify payload values  
+- perform semantic interpretation  
+- compress or transform data  
+- write non‑canonical JSON  
+- write to nondeterministic paths  
+- overwrite existing shards  
+
+Any violation is a constitutional breach.
+
+---
+
+# **6. DIRECTORY LAYOUT**
+
+Shard Writer v1 must write shards to:
+
+```
+/shards/<extractor>/<canonical_hash>.json
+```
+
+This layout:
+
+- preserves extractor provenance  
+- prevents collisions  
+- enables deterministic traversal  
+- supports Phase‑5 governance  
+- supports Phase‑7 lineage agents  
+- supports Phase‑8 stability engines  
+
+---
+
+# **7. ERROR HANDLING**
+
+Shard Writer v1 must:
+
+- fail fast on invalid payloads  
+- never write partial files  
+- never write malformed JSON  
+- never swallow exceptions  
+- never produce nondeterministic error messages  
+
+If canonicalization or validation fails, the writer must abort.
+
+---
+
+# **8. DOWNSTREAM DEPENDENCIES**
+
+Shard Writer v1 feeds:
+
+- Shard Validator v1  
+- Manifest Generator v1  
+- Phase‑5 CAS Evaluator  
+- Phase‑7 Lineage Agent  
+- Phase‑8 Stability Engine  
+- Phase‑9 Omnistructure Engine  
+
+If Shard Writer v1 drifts, **the entire ledger becomes untrustworthy**.
+
+---
+
+# **9. COMPLETION CRITERIA**
+
+Shard Writer v1 is complete when:
+
+- all shards validate against schema  
+- canonical_hash is correct  
+- logical timestamps form a valid chain  
+- directory layout is deterministic  
+- no nondeterministic fields exist  
+- all writes are atomic  
+- append‑only behavior is enforced  
+- canonical JSON is guaranteed  
+
+This engine is the **ledger‑writer** of NEXUS‑I.
+
+---
